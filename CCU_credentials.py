@@ -1,0 +1,2 @@
+CCU_Pass = '123456Di'
+CCU_Login = 'Dimster@867861030048455'
