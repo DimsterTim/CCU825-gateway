@@ -1,22 +1,18 @@
 # Program to send a command to CCU825
-import json
 
 
 import requests
 from CCU_credentials import *
 
-
-CCU_Parameters = {"Command":"GetStateAndEvents"}
-CCU_Command = CCU_Parameters
+CCU_Command = {'GetStateAndEvents': 'https://ccu.sh/data.cgx?cmd={"Command":"GetStateAndEvents"}',
+               'GetDeviceInfo': 'https://ccu.sh/data.cgx?cmd={"Command":"GetDeviceInfo"}'
+               }
 headers = {'Content-type': 'application/json'}
 
 
-print(CCU_Command)
+def CCU_SendCommand(command, login, pswd):
 
-
-def CCU_SendCommand(login, pswd): #, headers):
-
-    response = requests.get('https://ccu.sh/data.cgx', json={'cmd': CCU_Command}, auth=(login, pswd)) #, headers=headers)
+    response = requests.get(command, auth=(login, pswd))
     print(response.url)
     if response.status_code == 200:
         return response.json()
@@ -24,5 +20,7 @@ def CCU_SendCommand(login, pswd): #, headers):
         print('Ошибка запроса: ' + str(response.status_code))
 
 
-CCU_JSON = CCU_SendCommand(CCU_Login,CCU_Pass) #, headers)
+CCU_JSON = CCU_SendCommand(CCU_Command['GetStateAndEvents'], CCU_Login, CCU_Pass)
+print(CCU_JSON)
+CCU_JSON = CCU_SendCommand(CCU_Command['GetDeviceInfo'], CCU_Login, CCU_Pass)
 print(CCU_JSON)
