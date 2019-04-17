@@ -1,26 +1,88 @@
+#!/usr/bin/env python3
 # Program to send a command to CCU825
 
-
+import json
 import requests
 from CCU_credentials import *
+from flask_api import FlaskAPI, status, exceptions
 
-CCU_Command = {'GetStateAndEvents': 'https://ccu.sh/data.cgx?cmd={"Command":"GetStateAndEvents"}',
-               'GetDeviceInfo': 'https://ccu.sh/data.cgx?cmd={"Command":"GetDeviceInfo"}'
+CCU_Command = {'GetStateAndEvents': {'Command':'GetStateAndEvents'},
+               'GetDeviceInfo':     {'Command':'GetDeviceInfo'},
+               'SetOutputsState':   {'Command':'SetOutputsState','State':[0,0,0,0,0,0,0]}
                }
-headers = {'Content-type': 'application/json'}
 
 
+app = FlaskAPI(__name__)
+
+
+@app.route("/GetStateAndEvents/", methods=['GET', 'POST'])
+def GetStateAndEvents():
+    try:
+        CCU_JSON = CCU_SendCommand(CCU_Command['GetStateAndEvents'], CCU_Login, CCU_Pass)
+        return CCU_JSON
+    except:
+        return {'Invalid': 'request'}
+
+@app.route("/GetDeviceInfo/", methods=['GET', 'POST'])
+def GetDeviceInfo():
+    try:
+        CCU_JSON = CCU_SendCommand(CCU_Command['GetDeviceInfo'], CCU_Login, CCU_Pass)
+        return CCU_JSON
+    except:
+        return {'Invalid': 'request'}
+
+
+@app.route("/SetOutputsState/", methods=['GET', 'POST'])
+def SetOutputsState():
+    try:
+        GetOutputState = request.data
+        print(len(GetOutputState.get('State')))
+        if len(GetOutputState.get('State')) is 8:
+            CCU_Command["SetOutputsState"]["State"] = GetOutputState.get('State')
+            CCU_JSON = CCU_SendCommand(CCU_Command['SetOutputsState'], CCU_Login, CCU_Pass)
+            return CCU_JSON
+        else:
+            return {'Invalid': 'request'}
+    except:
+        return {'Invalid': 'request'}
+
+
+# Обработчик запросов к CCU.SH
 def CCU_SendCommand(command, login, pswd):
 
-    response = requests.get(command, auth=(login, pswd))
-    print(response.url)
+    response = requests.get('https://ccu.sh/data.cgx', params='cmd='+json.dumps(command, separators=(',', ':')), auth=(login, pswd))
     if response.status_code == 200:
         return response.json()
     else:
-        print('Ошибка запроса: ' + str(response.status_code))
+        print('Ошибка подключения: ' + str(response.status_code))
 
 
+def start(Server_Port):
+    app.run(host='0.0.0.0',port=Server_Port)
+
+    return()
+
+
+
+# тест подключения к CCU.SH
 CCU_JSON = CCU_SendCommand(CCU_Command['GetStateAndEvents'], CCU_Login, CCU_Pass)
-print(CCU_JSON)
-CCU_JSON = CCU_SendCommand(CCU_Command['GetDeviceInfo'], CCU_Login, CCU_Pass)
-print(CCU_JSON)
+if CCU_JSON != None:
+    print('Успешное подключение к CCU.SH, запускаю сервер..')
+    #for i in CCU_JSON.items():
+    #    print('{} - {}'.format(i, ', '.join(i[1])))
+
+    print(CCU_JSON)
+    print(CCU_JSON['Outputs'])
+
+    CCU_Command["SetOutputsState"]["State"] = CCU_JSON['Outputs']
+    print(CCU_Command["SetOutputsState"]["State"])
+
+    # Запуск сервера
+    if __name__ == "__main__":
+        start(Server_Port)
+
+else: print('Что-то пошло не так..')
+
+
+
+
