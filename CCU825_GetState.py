@@ -4,11 +4,12 @@
 import json
 import requests
 from CCU_credentials import *
-from flask_api import FlaskAPI, status, exceptions
+from flask_api import FlaskAPI
+from flask import request
 
-CCU_Command = {'GetStateAndEvents': {'Command':'GetStateAndEvents'},
-               'GetDeviceInfo':     {'Command':'GetDeviceInfo'},
-               'SetOutputsState':   {'Command':'SetOutputsState','State':[0,0,0,0,0,0,0]}
+CCU_Command = {'GetStateAndEvents': {"Command":"GetStateAndEvents"},
+               'GetDeviceInfo':     {"Command":"GetDeviceInfo"},
+               'SetOutputsState':   {"Command":"SetOutputsState","State":[-1,-1,-1,-1,-1,-1,-1]}
                }
 
 
@@ -19,6 +20,7 @@ app = FlaskAPI(__name__)
 def GetStateAndEvents():
     try:
         CCU_JSON = CCU_SendCommand(CCU_Command['GetStateAndEvents'], CCU_Login, CCU_Pass)
+        print(CCU_JSON)
         return CCU_JSON
     except:
         return {'Invalid': 'request'}
@@ -27,6 +29,7 @@ def GetStateAndEvents():
 def GetDeviceInfo():
     try:
         CCU_JSON = CCU_SendCommand(CCU_Command['GetDeviceInfo'], CCU_Login, CCU_Pass)
+        print(CCU_JSON)
         return CCU_JSON
     except:
         return {'Invalid': 'request'}
@@ -35,16 +38,18 @@ def GetDeviceInfo():
 @app.route("/SetOutputsState/", methods=['GET', 'POST'])
 def SetOutputsState():
     try:
-        GetOutputState = request.data
-        print(len(GetOutputState.get('State')))
-        if len(GetOutputState.get('State')) is 8:
-            CCU_Command["SetOutputsState"]["State"] = GetOutputState.get('State')
+        getoutputstate = request.data
+        if len(getoutputstate.get('State')) == 7:
+            CCU_Command["SetOutputsState"]["State"] = getoutputstate.get('State')
+            #print("Запрашиваемое состояние: %" % (CCU_Command["SetOutputsState"]["State"]))
             CCU_JSON = CCU_SendCommand(CCU_Command['SetOutputsState'], CCU_Login, CCU_Pass)
+            print(CCU_JSON['Outputs'])
             return CCU_JSON
         else:
             return {'Invalid': 'request'}
-    except:
-        return {'Invalid': 'request'}
+    except Exception as ex:
+        print(ex)
+        return {'Shit': 'Happened'}
 
 
 # Обработчик запросов к CCU.SH
